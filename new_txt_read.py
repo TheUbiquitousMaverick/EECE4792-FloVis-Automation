@@ -2,12 +2,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 import numpy as np
+import io
+
 
 
 def process_data_file(file_path, trigger_phrase):
+    """
+    Process the data file, parse upstream and downstream data, apply filtering,
+    and create a single plot. The plot is returned as an image buffer.
+    """
     cutoff_frequency = 1000000
     sampling_rate = 50e6
-    plot = True
 
     downstream_data = []
     upstream_data = []
@@ -47,7 +52,7 @@ def process_data_file(file_path, trigger_phrase):
         else:
             continue
 
-    upstream_data = upstream_data[25:]
+    upstream_data = upstream_data[25:]  # Skip initial samples
     downstream_data = downstream_data[25:]
 
     # Convert to DataFrame
@@ -66,7 +71,6 @@ def process_data_file(file_path, trigger_phrase):
     def butter_lowpass_filter(data, cutoff, fs, order=5):
         nyquist = 0.5 * fs
         normal_cutoff = cutoff / nyquist
-        b, a = butter(order, normal_cutoff, btype='low', analog=False)
         try:
             b, a = butter(order, normal_cutoff, btype='low', analog=False)
             return filtfilt(b, a, data)
@@ -78,33 +82,32 @@ def process_data_file(file_path, trigger_phrase):
     downstream_df["Voltage_Filtered"] = butter_lowpass_filter(downstream_df["Voltage"], cutoff_frequency, sampling_rate)
     upstream_df["Voltage_Filtered"] = butter_lowpass_filter(upstream_df["Voltage"], cutoff_frequency, sampling_rate)
 
-    if plot:
-        plt.figure(figsize=(12, 8))
+    # Create a single plot and save to buffer
+    fig, ax = plt.subplots(figsize=(12, 8))
 
-        # Plot downstream data
-        plt.subplot(2, 1, 1)
-        plt.plot(downstream_df["Second"], downstream_df["Voltage"], label="Downstream Original", alpha=0.7)
-        plt.plot(downstream_df["Second"], downstream_df["Voltage_Filtered"], label="Downstream Filtered", linewidth=2)
-        plt.xlabel("Time (Seconds)")
-        plt.ylabel("Voltage (Volts)")
-        plt.legend()
-        plt.title("Downstream Data")
-        plt.grid()
+    # Plot downstream data
+    ax.plot(downstream_df["Second"], downstream_df["Voltage"], label="Downstream Original", alpha=0.7)
+    ax.plot(downstream_df["Second"], downstream_df["Voltage_Filtered"], label="Downstream Filtered", linewidth=2)
 
-        # Plot upstream data
-        plt.subplot(2, 1, 2)
-        plt.plot(upstream_df["Second"], upstream_df["Voltage"], label="Upstream Original", alpha=0.7)
-        plt.plot(upstream_df["Second"], upstream_df["Voltage_Filtered"], label="Upstream Filtered", linewidth=2)
-        plt.xlabel("Time (Seconds)")
-        plt.ylabel("Voltage (Volts)")
-        plt.legend()
-        plt.title("Upstream Data")
-        plt.grid()
+    # Plot upstream data
+    ax.plot(upstream_df["Second"], upstream_df["Voltage"], label="Upstream Original", alpha=0.7)
+    ax.plot(upstream_df["Second"], upstream_df["Voltage_Filtered"], label="Upstream Filtered", linewidth=2)
 
-        plt.tight_layout()
-        plt.show()
+    # Add labels and legend
+    ax.set_xlabel("Time (Seconds)")
+    ax.set_ylabel("Voltage (Volts)")
+    ax.set_title("Upstream and Downstream Data")
+    ax.legend()
+    ax.grid()
 
-    return downstream_df, upstream_df, temperature
+    # Save the plot to a buffer
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format="png")
+    plt.close(fig)
+    buf.seek(0)
+
+    return downstream_df, upstream_df, temperature, buf
 
 
 # Example usage
