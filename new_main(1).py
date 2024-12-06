@@ -32,15 +32,17 @@ class CustomGUI:
 
         # Variables
         self.flowrates = []
-        self.pipe_dia_inner = 0  # Inner diameter
-        self.pipe_dia_outer = 0  # Outer diameter
-        self.speed_sound_pipe = 0
-        self.speed_sound_medium = 0
+        self.pipe_dia_inner = .04  # Inner diameter
+        self.pipe_dia_outer = .05  # Outer diameter
+        self.speed_sound_pipe = 2400
+        self.speed_sound_medium = 1500
 
         # Left Frame for Inputs
         self.left_frame = tk.Frame(self.root, width=300, bg="lightgray")
         self.left_frame.grid(row=0, column=0, sticky="nsew")
-        self.input_vars = [StringVar(value="0") for _ in range(4)]
+
+        init = ["0.038", "0.0483", "2400", "1550"]
+        self.input_vars = [StringVar(value=val) for val in init]
         input_labels = [
             'Pipe Inner Diameter(m)',
             'Pipe Outer Diameter(m)',
@@ -170,12 +172,7 @@ class CustomGUI:
         try:
             downstream_data, upstream_data, temperature, img_buffer = process_data_file("readings.txt", trigger_phrase)
 
-            # Update images and text in the GUI
-            if img_buffer:
-                self.update_image(self.image1_label, img_buffer)
-
             time_lag, img_cc = time_lag_cross_correlation(upstream_data, downstream_data)
-            self.update_image(self.image2_label, img_cc)
 
             if self.speed_sound_medium != 0:
                 speed_sound = self.speed_sound_medium
@@ -186,10 +183,28 @@ class CustomGUI:
                 speed_sound = time_water / math.sqrt(2) * self.pipe_dia_inner
 
             flowrate = flow_from_lag(time_lag, math.sqrt(2) * self.pipe_dia_inner, speed_sound)
-            self.flowrates.append(flowrate)
-            img_flowrates_plot=generate_flowrate_plot(self.flowrates)
-            self.update_image(self.image4_label,img_flowrates_plot)
-            self.update_textout1(f"flowrate:\n{flowrate}\ntemperature:\n{temperature}°F\n")
+
+            if flowrate < 0:
+                downstream_data, upstream_data, temperature, img_buffer = process_data_file("readings.txt",
+                                                                                            trigger_phrase,1)
+                time_lag, img_cc = time_lag_cross_correlation(upstream_data, downstream_data)
+                flowrate=flowrate*-1
+            if flowrate > 0 and flowrate < 80:
+                flowrate = (2 + 2*(flowrate/80)) * (0.038*0.038)/(self.pipe_dia_inner*self.pipe_dia_inner);
+                self.flowrates.append(flowrate)
+
+                img_flowrates_plot=generate_flowrate_plot(self.flowrates)
+
+                # Update images and text in the GUI
+                if img_buffer:
+                    self.update_image(self.image1_label, img_buffer)
+                self.update_image(self.image2_label, img_cc)
+                self.update_image(self.image4_label,img_flowrates_plot)
+                self.update_textout1(f"flowrate:\n{flowrate}\ntemperature:\n{temperature}°F\n")
+
+            else:
+                self.run_pressed();
+
         except Exception as e:
             print(f"Error processing data: {e}")
 

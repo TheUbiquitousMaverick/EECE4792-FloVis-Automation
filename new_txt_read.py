@@ -11,7 +11,7 @@ from scipy.signal import butter, filtfilt
 from new_tof_and_cross_corr import time_lag_cross_correlation, flow_from_lag
 
 
-def process_data_file(file_path, trigger_phrase):
+def process_data_file(file_path, trigger_phrase,inv=0):
     """
     Process the data file, parse upstream and downstream data, apply filtering,
     and create a single plot. The plot is returned as an image buffer.
@@ -59,7 +59,8 @@ def process_data_file(file_path, trigger_phrase):
 
     upstream_data = upstream_data[25:]  # Skip initial samples
     downstream_data = downstream_data[25:]
-
+    if inv!=0:
+        upstream_data,downstream_data=downstream_data,upstream_data
     # Convert to DataFrame
     downstream_df = pd.DataFrame(downstream_data, columns=["Sample", "Voltage"])
     upstream_df = pd.DataFrame(upstream_data, columns=["Sample", "Voltage"])
