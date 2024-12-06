@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.signal import butter, filtfilt, correlate, find_peaks
 from scipy.interpolate import interp1d
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import io
 
 def time_lag_cross_correlation(us_data, ds_data):

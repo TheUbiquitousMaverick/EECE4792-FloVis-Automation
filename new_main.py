@@ -11,7 +11,23 @@ import threading
 import numpy as np
 import time
 import matplotlib as plt
+import os
 
+
+def kill_process_by_name(process_name):
+    # Iterate over all running processes
+    for proc in psutil.process_iter(['pid', 'name']):
+        # Check if process name matches
+        if proc.info['name'] == process_name:
+            try:
+                psutil.Process(proc.info['pid']).terminate()
+                print(f"Terminated process {process_name} with PID {proc.info['pid']}")
+            except psutil.NoSuchProcess:
+                print(f"No such process: {process_name}")
+            except psutil.AccessDenied:
+                print(f"Access denied when trying to terminate {process_name}")
+            except Exception as e:
+                print(f"Error terminating process {process_name}: {e}")
 
 class CustomGUI:
     def __init__(self):
@@ -84,9 +100,9 @@ class CustomGUI:
         white_box = Image.new("RGB", (450, 350), color="white")  # Updated size
         img_tk = ImageTk.PhotoImage(white_box)
 
-        img = Image.open("snoopy.jpg")
-        img = img.resize((450, 350), Image.Resampling.LANCZOS)
-        img_tk = ImageTk.PhotoImage(img)
+        #img = Image.open("snoopy.jpg")
+        #img = img.resize((450, 350), Image.Resampling.LANCZOS)
+        #img_tk = ImageTk.PhotoImage(img)
 
         self.image1_label.config(image=img_tk)
         self.image1_label.image = img_tk  # Keep a reference to avoid garbage collection
@@ -185,9 +201,20 @@ class CustomGUI:
         while self.running:
             self.single_iteration()
             time.sleep(2)
+
     def single_iteration(self):
         """Perform a single iteration of subprocess logic."""
-        self.kill_process_by_name('nios2-terminal.exe')
+        kill_process_by_name('nios2-terminal.exe')
+
+        # Specify the file path
+        file_path = 'readings.txt'
+        # Check if the file exists
+        if os.path.exists(file_path):
+        # Delete the file
+            os.remove(file_path)
+            print(f"{file_path} has been deleted.")
+        else:
+            print(f"{file_path} does not exist.")
 
         # Start subprocess for Nios II
         bat_file_path = "C:\\intelFPGA_lite\\18.0\\nios2eds\\Nios II Command Shell.bat"
@@ -208,6 +235,8 @@ class CustomGUI:
 
         process.kill()
 
+        time.sleep(8)
+
         # Process readings file
         trigger_phrase = "== IT'S ALIVE =="
 
@@ -219,10 +248,8 @@ class CustomGUI:
 
             if img_buffer:
                 self.update_image1(img_buffer)
-<<<<<<< HEAD
                 self.update_image2(img_buffer)
-            flowrate=flow_from_lag(time_lag,math.sqrt(2)*self.pipe_dia,self.speed_sound)
-=======
+
             time_lag,img_cc = time_lag_cross_correlation(upstream_data, downstream_data)
             self.update_image2(img_cc)
             if self.speed_sound_medium != 0:
@@ -232,7 +259,6 @@ class CustomGUI:
                 time_water=calculate_average_time_of_flight(downstream_data,upstream_data)-0.00003220801425-time_pipe
                 speed_sound=time_water/math.sqrt(2) * self.pipe_dia_inner
             flowrate = flow_from_lag(time_lag, math.sqrt(2) * self.pipe_dia_inner, speed_sound)
->>>>>>> 8318554cee1ffe24a9ced25057726905c10c35a5
             self.flowrates.append(flowrate)
 
             def generate_flowrate_plot(flowrates):
