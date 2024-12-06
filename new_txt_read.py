@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
+from new_tof_and_cross_corr import time_lag_cross_correlation, flow_from_lag
 
 
 def process_data_file(file_path, trigger_phrase):
@@ -111,7 +112,6 @@ def process_data_file(file_path, trigger_phrase):
     buf = io.BytesIO()
     plt.tight_layout()
     plt.savefig(buf, format="png")
-    plt.show()
     plt.close(fig)
     buf.seek(0)
 
@@ -120,8 +120,30 @@ def process_data_file(file_path, trigger_phrase):
 
 # Example usage
 #trigger_phrase = "== IT'S ALIVE =="  # or another trigger phrase
-#downstream_data, upstream_data, temperature,img = process_data_file("readings.txt", trigger_phrase)
+#downstream_data, upstream_data, temperature,img = process_data_file("text.txt", trigger_phrase)
+#time_lag= time_lag_cross_correlation(upstream_data,downstream_data)
+#flow=flow_from_lag(time_lag,0.1,1500)
+#print(flow)
 
+def calculate_average_time_of_flight(downstream_df, upstream_df):
+    def calculate_time_of_flight(signal_df):
+        # Threshold to detect significant signal changes (adjust as necessary)
+        threshold = 0.1 * np.max(np.abs(signal_df["Voltage_Filtered"].values))
+        significant_indices = np.where(np.abs(signal_df["Voltage_Filtered"].values) > threshold)[0]
+
+        if len(significant_indices) < 2:
+            raise ValueError("Not enough significant signal data to calculate time of flight.")
+
+        # Calculate time of flight as the difference between the first and last significant times
+        time_of_flight = signal_df["Second"].iloc[significant_indices[-1]] - signal_df["Second"].iloc[
+            significant_indices[0]]
+        return time_of_flight
+
+    downstream_tof = calculate_time_of_flight(downstream_df)
+    upstream_tof = calculate_time_of_flight(upstream_df)
+
+    average_tof = (downstream_tof + upstream_tof) / 2
+    return average_tof
 
 def calculate_time_lag(downstream_df, upstream_df, sampling_rate):
     """
