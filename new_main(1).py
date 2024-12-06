@@ -151,7 +151,7 @@ class CustomGUI:
 
         download_cmd = (
             "nios2-download -g C:\\\\Users\\\\nwalt\\\\Downloads\\\\DE1-SoC_v.5.1.3_HWrevF.revG_SystemCD\\\\Demonstrations\\\\FPGA"
-            "\\\\DE1_SoC_SDRAM_Nios_Test\\\\software\\\\DE1_SoC_SDRAM_Nios_Test\\\\DE1_SoC_SDRAM_Nios_Test.elf\r\n"
+            "\\\\DE1_SoC_SDRAM_Nios_Test\\\\software\\\\DE1_SoC_SDRAM_Nios_Test\\\\TOF.elf\r\n"
             "nios2-terminal > readings.txt"
         )
 
