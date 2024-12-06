@@ -2,8 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 import numpy as np
-import io
 
+import io
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, filtfilt
+from new_tof_and_cross_corr import time_lag_cross_correlation, flow_from_lag
 
 
 def process_data_file(file_path, trigger_phrase):
@@ -52,7 +57,9 @@ def process_data_file(file_path, trigger_phrase):
         else:
             continue
 
+    upstream_data = upstream_data[25:]  # Skip initial samples
     downstream_data = downstream_data[25:]
+
     # Convert to DataFrame
     downstream_df = pd.DataFrame(downstream_data, columns=["Sample", "Voltage"])
     upstream_df = pd.DataFrame(upstream_data, columns=["Sample", "Voltage"])
@@ -80,23 +87,26 @@ def process_data_file(file_path, trigger_phrase):
     downstream_df["Voltage_Filtered"] = butter_lowpass_filter(downstream_df["Voltage"], cutoff_frequency, sampling_rate)
     upstream_df["Voltage_Filtered"] = butter_lowpass_filter(upstream_df["Voltage"], cutoff_frequency, sampling_rate)
 
-    # Create a single plot and save to buffer
-    fig, ax = plt.subplots(figsize=(12, 8))
+    # Create two subplots and save to buffer
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))
 
     # Plot downstream data
-    ax.plot(downstream_df["Second"], downstream_df["Voltage"], label="Downstream Original", alpha=0.7)
-    ax.plot(downstream_df["Second"], downstream_df["Voltage_Filtered"], label="Downstream Filtered", linewidth=2)
+    axes[0].plot(downstream_df["Second"], downstream_df["Voltage"], label="Downstream Original", alpha=0.7)
+    axes[0].plot(downstream_df["Second"], downstream_df["Voltage_Filtered"], label="Downstream Filtered", linewidth=2)
+    axes[0].set_xlabel("Time (Seconds)")
+    axes[0].set_ylabel("Voltage (Volts)")
+    axes[0].set_title("Downstream Data")
+    axes[0].legend()
+    axes[0].grid()
 
     # Plot upstream data
-    ax.plot(upstream_df["Second"], upstream_df["Voltage"], label="Upstream Original", alpha=0.7)
-    ax.plot(upstream_df["Second"], upstream_df["Voltage_Filtered"], label="Upstream Filtered", linewidth=2)
-
-    # Add labels and legend
-    ax.set_xlabel("Time (Seconds)")
-    ax.set_ylabel("Voltage (Volts)")
-    ax.set_title("Upstream and Downstream Data")
-    ax.legend()
-    ax.grid()
+    axes[1].plot(upstream_df["Second"], upstream_df["Voltage"], label="Upstream Original", alpha=0.7)
+    axes[1].plot(upstream_df["Second"], upstream_df["Voltage_Filtered"], label="Upstream Filtered", linewidth=2)
+    axes[1].set_xlabel("Time (Seconds)")
+    axes[1].set_ylabel("Voltage (Volts)")
+    axes[1].set_title("Upstream Data")
+    axes[1].legend()
+    axes[1].grid()
 
     # Save the plot to a buffer
     buf = io.BytesIO()
@@ -110,4 +120,59 @@ def process_data_file(file_path, trigger_phrase):
 
 # Example usage
 #trigger_phrase = "== IT'S ALIVE =="  # or another trigger phrase
-#downstream_data, upstream_data, temperature = process_data_file("readings.txt", trigger_phrase)
+#downstream_data, upstream_data, temperature,img = process_data_file("text.txt", trigger_phrase)
+#time_lag= time_lag_cross_correlation(upstream_data,downstream_data)
+#flow=flow_from_lag(time_lag,0.1,1500)
+#print(flow)
+
+def calculate_average_time_of_flight(downstream_df, upstream_df):
+    def calculate_time_of_flight(signal_df):
+        # Threshold to detect significant signal changes (adjust as necessary)
+        threshold = 0.1 * np.max(np.abs(signal_df["Voltage_Filtered"].values))
+        significant_indices = np.where(np.abs(signal_df["Voltage_Filtered"].values) > threshold)[0]
+
+        if len(significant_indices) < 2:
+            raise ValueError("Not enough significant signal data to calculate time of flight.")
+
+        # Calculate time of flight as the difference between the first and last significant times
+        time_of_flight = signal_df["Second"].iloc[significant_indices[-1]] - signal_df["Second"].iloc[
+            significant_indices[0]]
+        return time_of_flight
+
+    downstream_tof = calculate_time_of_flight(downstream_df)
+    upstream_tof = calculate_time_of_flight(upstream_df)
+
+    average_tof = (downstream_tof + upstream_tof) / 2
+    return average_tof
+
+def calculate_time_lag(downstream_df, upstream_df, sampling_rate):
+    """
+    Calculates the time lag between downstream and upstream data using cross-correlation.
+
+    Args:
+        downstream_df (pd.DataFrame): DataFrame containing downstream data with 'Second' and 'Voltage_Filtered' columns.
+        upstream_df (pd.DataFrame): DataFrame containing upstream data with 'Second' and 'Voltage_Filtered' columns.
+        sampling_rate (float): Sampling rate in Hz (e.g., 50 MHz).
+
+    Returns:
+        float: Time lag in seconds.
+    """
+    # Ensure both datasets have the same length by trimming to the smaller size
+    min_length = min(len(downstream_df), len(upstream_df))
+    ds_voltage = downstream_df["Voltage_Filtered"][:min_length].values
+    us_voltage = upstream_df["Voltage_Filtered"][:min_length].values
+
+    # Perform cross-correlation
+    correlation = np.correlate(ds_voltage, us_voltage, mode="full")
+    lag_index = np.argmax(correlation) - (len(ds_voltage) - 1)
+
+    # Convert lag index to time lag
+    time_lag = lag_index / sampling_rate
+
+    return time_lag
+
+
+# Example usage
+#sampling_rate = 50e6  # 50 MHz
+#time_lag = calculate_time_lag(downstream_data, upstream_data, sampling_rate)
+#print(f"Time Lag: {time_lag} seconds")

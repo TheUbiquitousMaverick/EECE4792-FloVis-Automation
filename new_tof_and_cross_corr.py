@@ -2,9 +2,20 @@ import pandas as pd
 import numpy as np
 from scipy.signal import butter, filtfilt, correlate, find_peaks
 from scipy.interpolate import interp1d
-
+import matplotlib as plt
+import io
 
 def time_lag_cross_correlation(us_data, ds_data):
+    """
+    Calculate the time lag using cross-correlation and visualize the result.
+
+    Parameters:
+        us_data (DataFrame): Upstream data with 'Second' and 'Voltage_Filtered' columns.
+        ds_data (DataFrame): Downstream data with 'Second' and 'Voltage_Filtered' columns.
+
+    Returns:
+        float: The calculated time lag in seconds.
+    """
 
     # Extract time and signal data
     us_time = us_data['Second'].values
@@ -29,7 +40,25 @@ def time_lag_cross_correlation(us_data, ds_data):
     time_step = common_time[1] - common_time[0]
     time_lag = lag_index * time_step
 
-    return time_lag
+    # Generate time lags for plotting
+    time_lags = np.arange(-len(ds_signal_interp) + 1, len(us_signal_interp)) * time_step
+
+    # Plot cross-correlation vs time lag
+    plt.figure(figsize=(10, 6))
+    plt.plot(time_lags, cross_corr, label='Cross-Correlation')
+    plt.axvline(time_lag, color='r', linestyle='--', label=f'Max at {time_lag:.8f}s')
+    plt.title('Cross-Correlation vs Time Lag')
+    plt.xlabel('Time Lag (s)')
+    plt.ylabel('Cross-Correlation Amplitude')
+    plt.legend()
+    plt.grid()
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format="png")
+    plt.close()
+    buf.seek(0)
+
+    return time_lag, buf
 
 
 def speed_of_sound_fahrenheit(fahrenheit_temp):
@@ -54,3 +83,4 @@ def flow_from_lag(time_lag,dist,speed_sound):
 
     return flow
 
+#print(flow_from_lag(2.1399938857170138e-07,0.0635, 1481))
