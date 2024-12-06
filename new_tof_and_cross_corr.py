@@ -83,4 +83,53 @@ def flow_from_lag(time_lag,dist,speed_sound):
 
     return flow
 
+
+def generate_flowrate_plot(flowrates):
+    try:
+        # Generate indices (1-based)
+        indices = np.arange(1, len(flowrates) + 1)
+
+        # Calculate the cumulative average (flow_average)
+        flow_average = np.cumsum(flowrates) / indices
+
+        # Create the plot
+        plt.figure(figsize=(8, 6))
+        plt.plot(indices, flowrates, 'o', label='Flowrate Points')  # Scatter plot for flowrates
+        plt.plot(indices, flow_average, 'r-', label='Cumulative Average')  # Cumulative average line
+
+        # Label the newest cumulative average value
+        if len(flow_average) > 0:
+            newest_avg_value = flow_average[-1]
+            newest_avg_index = indices[-1]
+            plt.text(
+                newest_avg_index,
+                newest_avg_value,
+                f'{newest_avg_value:.2f}',
+                color='red',
+                fontsize=10,
+                ha='right',
+                va='bottom'
+            )
+
+        plt.title('Flowrate vs Index with Cumulative Average')
+        plt.xlabel('Index')
+        plt.ylabel('Flowrate')
+        plt.legend()
+        plt.grid()
+
+        # Save the plot to a buffer
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png')
+        img_buffer.seek(0)  # Move to the start of the buffer
+        plt.close()  # Close the plot to free memory
+
+        return img_buffer
+    except Exception as e:
+        print(f"Error generating flowrate plot: {e}")
+        return None
+
+    except Exception as e:
+        print(f"Error generating flowrate plot: {e}")
+        return None
+
 #print(flow_from_lag(2.1399938857170138e-07,0.0635, 1481))
