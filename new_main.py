@@ -159,14 +159,14 @@ class CustomGUI:
 
         try:
             downstream_data, upstream_data, temperature, img_buffer = process_data_file(
-                "readings.txt", trigger_phrase
+                "C:\\Users\\nwalt\\Desktop\\EECE4792-FloVis-Automation\\readings.txt", trigger_phrase
             )
 
             if img_buffer:
                 self.update_image1(img_buffer)
                 self.update_image2(img_buffer)
             time_lag=time_lag_cross_correlation(upstream_data,downstream_data)
-            flowrate=flow_from_lag(time_lag,math.sqrt(2)*self.pipe_dia,self.speed_sound)
+            flowrate=flow_from_lag(time_lag,(math.sqrt(2)*self.pipe_dia),self.speed_sound)
             self.flowrates.append(flowrate)
             self.update_textout1(f"flowrate:\n{flowrate}\ntemperature:\n{temperature}°C\n")
             self.update_textout2(f"reynold number:\n{'placeholder'}\nshear rate:\nCalculated Placeholder\n")

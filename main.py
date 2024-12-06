@@ -55,5 +55,5 @@ process.kill()
 time.sleep(5)
 
 trigger_phrase = "== IT'S ALIVE =="  # or another trigger phrase
-downstream_data, upstream_data, temperature = new_txt_read.process_data_file("readings.txt", trigger_phrase)
+downstream_data, upstream_data, temperature, img = new_txt_read.process_data_file("readings.txt", trigger_phrase)
 
