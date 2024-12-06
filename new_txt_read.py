@@ -47,8 +47,8 @@ def process_data_file(file_path, trigger_phrase):
         else:
             continue
 
-    upstream_data = upstream_data[25:]
-    downstream_data = downstream_data[25:]
+    upstream_data = upstream_data[100:]
+    downstream_data = downstream_data[100:]
 
     # Convert to DataFrame
     downstream_df = pd.DataFrame(downstream_data, columns=["Sample", "Voltage"])
